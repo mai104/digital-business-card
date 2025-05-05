@@ -1,12 +1,62 @@
-# React + Vite
+# البطاقة الرقمية 
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## التعديلات التي تمت:
 
-Currently, two official plugins are available:
+### 1. إزالة الحركة من البطاقة
+- تم إزالة جميع الحركات من البطاقة الرئيسية (Tilt, motion animations)
+- البطاقة الآن ثابتة بالكامل
+- الوميض والحركات المختلفة تم إلغاؤها
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### 2. تصغير الزر
+- تم تقليل عرض زر "Save Contact" من 100% إلى max-width: 220px
+- تم تقليل padding من 14px 40px إلى 10px 30px
+- تم تقليل font-size من 1rem إلى 0.9rem
+- الزر الآن يظهر في المنتصف بعرض مناسب
 
-## Expanding the ESLint configuration
+### 3. تحديث منطق إرسال البريد الإلكتروني
+- البريد الإلكتروني يُرسل من maihany104@gmail.com
+- تفاصيل الاتصال تُرسل إلى البريد الذي يدخله المستخدم
+- عند الضغط على X في نافذة "Share your contact details":
+  - النافذة تُغلق مباشرة
+  - البيانات المدخلة تُرسل بشكل منظم إلى maihany104@gmail.com
+  
+### متطلبات الإعداد
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+1. يجب تحديث FormSpree ID في ملف BusinessCard.jsx:
+   ```javascript
+   const response = await fetch('https://formspree.io/f/YOUR_FORM_ID', {
+   ```
+   واستبدال `YOUR_FORM_ID` بـ FormSpree ID الفعلي.
+
+2. تأكد من تفعيل FormSpree للبريد maihany104@gmail.com
+
+### تنسيق البريد المرسل
+
+تفاصيل الاتصال تُرسل بالتنسيق التالي:
+```
+Contact Details:
+
+Name: [اسم الشخص]
+Email: [البريد الإلكتروني]
+Phone: [رقم الهاتف]
+Company: [اسم الشركة]
+Position: [المنصب]
+Website: [الموقع الإلكتروني]
+
+Message: [الوصف]
+```
+
+عند مشاركة معلومات الاتصال، يتم إرسال البيانات بالتنسيق:
+```
+Contact Shared By:
+----------------
+Name: [الاسم الأول] [الاسم الأخير]
+Email: [البريد الإلكتروني]
+Phone: [رقم الهاتف]
+Job Title: [المسمى الوظيفي]
+Company: [اسم الشركة]
+
+Person Contacted: [اسم الشخص المتواصل معه]
+Date: [التاريخ]
+Time: [الوقت]
+```

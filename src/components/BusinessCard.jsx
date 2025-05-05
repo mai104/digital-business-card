@@ -1,18 +1,30 @@
 import { useState } from 'react'
-import { Modal, Button } from 'react-bootstrap'
-import { Envelope, Telephone, Whatsapp, Person } from 'react-bootstrap-icons'
+import CardHeader from './Card/CardHeader'
+import CardInfo from './Card/CardInfo'
+import CardContacts from './Card/CardContacts'
+import SaveContactButton from './Card/SaveContactButton'
+import PoweredBy from './Card/PoweredBy'
+import SaveContactModal from './Modals/SaveContactModal'
+import EmailModal from './Modals/EmailModal'
+import ShareModal from './Modals/ShareModal'
+import SuccessModal from './Modals/SuccessModal'
 import { clients } from '../data/clients'
 
 const BusinessCard = () => {
   const client = clients[0]
   const [showSaveModal, setShowSaveModal] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
+  const [showEmailModal, setShowEmailModal] = useState(false)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [successMessage, setSuccessMessage] = useState('')
   const [email, setEmail] = useState('')
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
     email: '',
-    phone: ''
+    phone: '',
+    jobTitle: '',
+    company: ''
   })
 
   const handleSaveContact = () => {
@@ -23,11 +35,11 @@ const BusinessCard = () => {
     const vcard = `BEGIN:VCARD
 VERSION:3.0
 FN:${client.name}
-ORG:${client.company}
+ORG:${client.companyName}
 TITLE:${client.title}
 EMAIL:${client.email}
 TEL;TYPE=CELL:${client.phone}
-URL:https://wa.me/${client.whatsapp.replace('+', '')}
+URL:${client.website}
 NOTE:${client.description}
 END:VCARD`
 
@@ -35,255 +47,164 @@ END:VCARD`
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `${client.name}.vcf`
+    a.download = `${client.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.vcf`
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
     window.URL.revokeObjectURL(url)
     setShowSaveModal(false)
-    setShowShareModal(true)
+    setTimeout(() => {
+      setShowShareModal(true)
+    }, 500)
   }
 
-  const handleReceiveEmail = async (e) => {
-    e.preventDefault()
-    // Here you would send the email to the user
-    alert(`Contact will be sent to: ${email}`)
+  const handleReceiveEmail = () => {
+    setShowEmailModal(true)
     setShowSaveModal(false)
-    setShowShareModal(true)
+  }
+
+  const handleEmailSubmit = async (e) => {
+    e.preventDefault()
+    
+    try {
+      const response = await fetch('https://formspree.io/f/mqaqqpnv', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          to: email,
+          from: 'maihany104@gmail.com',
+          subject: `Contact Details - ${client.name}`,
+          body: `
+Contact Details:
+
+Name: ${client.name}
+Email: ${client.email}
+Phone: ${client.phone}
+Company: ${client.companyName}
+Position: ${client.title}
+Website: ${client.website}
+
+Description: ${client.description}
+          `
+        })
+      })
+      
+      if (response.ok) {
+        setShowEmailModal(false)
+        setSuccessMessage(`Contact details sent to: ${email}`)
+        setShowSuccessModal(true)
+        setTimeout(() => {
+          setShowShareModal(true)
+        }, 2000)
+      } else {
+        setSuccessMessage('Error sending email. Please try again.')
+        setShowSuccessModal(true)
+      }
+    } catch (error) {
+      console.error('Error:', error)
+      setSuccessMessage('Error sending email. Please try again.')
+      setShowSuccessModal(true)
+    }
   }
 
   const handleShareContact = async (e) => {
     e.preventDefault()
+    
+    const date = new Date()
     const contactData = {
-      ...formData,
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      email: formData.email,
+      phone: formData.phone,
+      jobTitle: formData.jobTitle,
+      company: formData.company,
       contactedPerson: client.name,
-      date: new Date().toISOString()
+      date: date.toLocaleDateString(),
+      time: date.toLocaleTimeString()
     }
     
-    // Here you would send the data to your email
-    console.log('Sending contact:', contactData)
-    setShowShareModal(false)
+    try {
+      const response = await fetch('https://formspree.io/f/mqaqqpnv', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          to: 'maihany104@gmail.com',
+          subject: `Contact Shared from ${formData.firstName} ${formData.lastName}`,
+          body: `
+Contact Shared By:
+----------------
+Name: ${formData.firstName} ${formData.lastName}
+Email: ${formData.email}
+Phone: ${formData.phone}
+Job Title: ${formData.jobTitle}
+Company: ${formData.company}
+
+Person Contacted: ${client.name}
+Date: ${date.toLocaleDateString()}
+Time: ${date.toLocaleTimeString()}
+          `
+        })
+      })
+      
+      if (response.ok) {
+        setShowShareModal(false)
+        setSuccessMessage('Thank you for sharing your contact information!')
+        setShowSuccessModal(true)
+      } else {
+        setSuccessMessage('Error sending information. Please try again.')
+        setShowSuccessModal(true)
+      }
+    } catch (error) {
+      console.error('Error:', error)
+      setSuccessMessage('Error sending information. Please try again.')
+      setShowSuccessModal(true)
+    }
   }
 
   return (
     <div className="container">
       <div className="business-card-container">
-        {/* Cover Header */}
-        <div className="cover-header">
-          <div className="cover-left">
-            <img src="/maather-logo.png" alt="MAATHER" className="cover-logo" />
-          </div>
-          <div className="cover-right">
-            <img src="/gavel.png" alt="Gavel" className="gavel-image" />
-          </div>
-          
-          {/* Profile Section */}
-          <div className="profile-section">
-            <div className="profile-frame">
-              <img src="/omar-profile.png" alt="Omar Alalaiwi" className="profile-image" />
-            </div>
-            <div className="company-card">
-              <img src="/company-card.png" alt="Company Card" />
-            </div>
-          </div>
-        </div>
-
-        {/* Card Content */}
-        <div className="card-content">
-          <h1 className="name-title">{client.name}</h1>
-          <h2 className="position">{client.title}</h2>
-          
-          <p className="license-text">"{client.arabicLicense}"</p>
-          <p className="arabic-description">"{client.arabicDescription}"</p>
-          
-          <div className="description-box">
-            <p className="description-text">"{client.description}"</p>
-          </div>
-          
-          <div className="contact-list">
-            <a href={`mailto:${client.email}`} className="contact-item">
-              <div className="contact-icon">
-                <Envelope size={20} />
-              </div>
-              <div>
-                <div className="contact-text">{client.email}</div>
-                <div className="contact-label">Work</div>
-              </div>
-            </a>
-            
-            <a href={`tel:${client.phone}`} className="contact-item">
-              <div className="contact-icon">
-                <Telephone size={20} />
-              </div>
-              <div>
-                <div className="contact-text">{client.phone}</div>
-                <div className="contact-label">Work</div>
-              </div>
-            </a>
-            
-            <a href={`https://wa.me/${client.whatsapp.replace('+', '')}`} target="_blank" rel="noopener noreferrer" className="contact-item">
-              <div className="contact-icon">
-                <Whatsapp size={20} />
-              </div>
-              <div>
-                <div className="contact-text">Connect with me on WhatsApp</div>
-              </div>
-            </a>
-          </div>
-          
-          <Button onClick={handleSaveContact} className="save-contact-btn">
-            <Person size={20} className="me-2" />
-            Save Contact
-          </Button>
-        </div>
+        <CardHeader client={client} />
+        <CardInfo client={client} />
+        <CardContacts client={client} />
+        <SaveContactButton onClick={handleSaveContact} />
       </div>
 
-      {/* Save Contact Modal */}
-      <Modal show={showSaveModal} onHide={() => setShowSaveModal(false)} centered className="save-contact-modal">
-        <Modal.Body className="p-4 text-center">
-          <Button 
-            variant="link" 
-            className="position-absolute end-0 top-0 text-dark p-2" 
-            onClick={() => setShowSaveModal(false)}
-            style={{top: '10px', right: '10px'}}
-          >
-            ×
-          </Button>
-          
-          <Button variant="dark" className="w-100 mb-3 py-3" onClick={handleDownloadVCF}>
-            <Person className="me-2" />
-            Save to contacts
-          </Button>
-          
-          <div className="text-center text-muted mb-3">or</div>
-          
-          <Button variant="dark" className="w-100 py-3" onClick={() => {
-            setShowSaveModal(false)
-            const emailModal = new bootstrap.Modal(document.getElementById('emailModal'))
-            emailModal.show()
-          }}>
-            <Envelope className="me-2" />
-            Receive contact via email
-          </Button>
-        </Modal.Body>
-      </Modal>
+      <PoweredBy />
 
-      {/* Email Input Modal */}
-      <div id="emailModal" className="modal fade" tabIndex="-1">
-        <div className="modal-dialog modal-dialog-centered">
-          <div className="modal-content" style={{borderRadius: '16px'}}>
-            <div className="modal-body p-4 text-center">
-              <Button 
-                variant="link" 
-                className="position-absolute end-0 top-0 text-dark p-2" 
-                onClick={() => {
-                  const emailModal = bootstrap.Modal.getInstance(document.getElementById('emailModal'))
-                  emailModal.hide()
-                }}
-                style={{top: '10px', right: '10px'}}
-              >
-                ×
-              </Button>
-              
-              <h5 className="mb-4">Enter your email to receive contact</h5>
-              
-              <form onSubmit={handleReceiveEmail}>
-                <input
-                  type="email"
-                  className="form-control mb-4"
-                  placeholder="Your email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  style={{padding: '12px', borderRadius: '8px'}}
-                />
-                <Button type="submit" variant="dark" className="w-100 py-3" style={{borderRadius: '8px'}}>
-                  <Envelope className="me-2" />
-                  Receive
-                </Button>
-              </form>
-            </div>
-          </div>
-        </div>
-      </div>
+      <SaveContactModal 
+        show={showSaveModal}
+        onHide={() => setShowSaveModal(false)}
+        onDownload={handleDownloadVCF}
+        onEmailRequest={handleReceiveEmail}
+      />
 
-      {/* Share Your Contact Modal */}
-      <Modal show={showShareModal} onHide={() => setShowShareModal(false)} centered className="share-contact-modal">
-        <Modal.Body className="p-4">
-          <Button 
-            variant="link" 
-            className="position-absolute end-0 top-0 text-dark p-2" 
-            onClick={() => setShowShareModal(false)}
-            style={{top: '10px', right: '10px'}}
-          >
-            Skip
-          </Button>
-          
-          <div className="text-center mb-4">
-            <div className="d-flex align-items-center mb-3">
-              <img src="/omar-profile.png" alt="Omar" style={{width: '60px', height: '60px', borderRadius: '50%', marginRight: '12px'}} />
-              <h5 className="mb-0">Share your contact information with Omar</h5>
-            </div>
-          </div>
-          
-          <form onSubmit={handleShareContact}>
-            <div className="row mb-3">
-              <div className="col">
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="First name"
-                  value={formData.firstName}
-                  onChange={(e) => setFormData({...formData, firstName: e.target.value})}
-                  style={{padding: '12px', borderRadius: '8px'}}
-                />
-              </div>
-              <div className="col">
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Last name"
-                  value={formData.lastName}
-                  onChange={(e) => setFormData({...formData, lastName: e.target.value})}
-                  style={{padding: '12px', borderRadius: '8px'}}
-                />
-              </div>
-            </div>
-            
-            <input
-              type="email"
-              className="form-control mb-3"
-              placeholder="Email"
-              value={formData.email}
-              onChange={(e) => setFormData({...formData, email: e.target.value})}
-              required
-              style={{padding: '12px', borderRadius: '8px'}}
-            />
-            
-            <input
-              type="tel"
-              className="form-control mb-3"
-              placeholder="Phone number"
-              value={formData.phone}
-              onChange={(e) => setFormData({...formData, phone: e.target.value})}
-              style={{padding: '12px', borderRadius: '8px'}}
-            />
-            
-            <Button variant="outline-secondary" className="w-100 mb-3 py-3" style={{borderRadius: '8px'}}>
-              Add more information
-            </Button>
-            
-            <Button type="submit" variant="dark" className="w-100 py-3" style={{borderRadius: '8px'}}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-send me-2" viewBox="0 0 16 16">
-                <path d="M15.854.146a.5.5 0 0 1 .11.54l-5.819 14.547a.75.75 0 0 1-1.329.124l-3.178-4.995L.643 7.184a.75.75 0 0 1 .124-1.33L15.314.037a.5.5 0 0 1 .54.11ZM6.636 10.07l2.761 4.338L14.13 2.576 6.636 10.07Zm6.787-8.201L1.591 6.602l4.339 2.76 7.494-7.493Z"/>
-              </svg>
-              Send
-            </Button>
-            
-            <p className="text-center text-muted small mt-3">We don't sell your contact details</p>
-          </form>
-        </Modal.Body>
-      </Modal>
+      <EmailModal 
+        show={showEmailModal}
+        onHide={() => setShowEmailModal(false)}
+        email={email}
+        setEmail={setEmail}
+        onSubmit={handleEmailSubmit}
+      />
+
+      <ShareModal 
+        show={showShareModal}
+        onHide={() => setShowShareModal(false)}
+        client={client}
+        formData={formData}
+        setFormData={setFormData}
+        onSubmit={handleShareContact}
+      />
+
+      <SuccessModal 
+        show={showSuccessModal}
+        onHide={() => setShowSuccessModal(false)}
+        message={successMessage}
+      />
     </div>
   )
 }
